@@ -4,54 +4,47 @@ trigger:
       - main
 
 variables:
-  imageRepository: devops-shazia-09
-  dockerfilePath: Dockerfile
-  buildConfiguration: Release
-  acrServiceConnection: replace-with-your-acr-service-connection
-  azureSubscription: replace-with-your-azure-service-connection
-  acrLoginServer: replace-with-your-acr-login-server
-  containerAppName: replace-with-your-container-app-name
-  resourceGroupName: replace-with-your-resource-group
+  azureSubscription: Subscription 1
+  appServiceName: ShaziaWebApp
+  packageName: site.zip
 
 stages:
   - stage: Build
-    displayName: Build and Push Image
+    displayName: Build Package
     jobs:
-      - job: BuildImage
-        displayName: Build Image
+      - job: BuildApp
+        displayName: Package Static Site
         pool:
           vmImage: ubuntu-latest
         steps:
-          - task: Docker@2
-            displayName: Build and push image to ACR
+          - task: ArchiveFiles@2
+            displayName: Archive site files
             inputs:
-              command: buildAndPush
-              repository: $(imageRepository)
-              dockerfile: $(dockerfilePath)
-              containerRegistry: $(acrServiceConnection)
-              tags: |
-                $(Build.BuildId)
-                latest
+              rootFolderOrFile: $(Build.SourcesDirectory)
+              includeRootFolder: false
+              archiveType: zip
+              archiveFile: $(Build.ArtifactStagingDirectory)/$(packageName)
+              replaceExistingArchive: true
+
+          - publish: $(Build.ArtifactStagingDirectory)/$(packageName)
+            artifact: drop
 
   - stage: Deploy
-    displayName: Deploy to Azure Container Apps
+    displayName: Deploy to Azure App Service
     dependsOn: Build
     condition: succeeded()
     jobs:
-      - job: DeployApp
-        displayName: Deploy Image
+      - job: DeployWebApp
+        displayName: Deploy Package
         pool:
           vmImage: ubuntu-latest
         steps:
-          - task: AzureCLI@2
-            displayName: Update container app image
+          - download: current
+            artifact: drop
+
+          - task: AzureWebApp@1
+            displayName: Deploy to App Service
             inputs:
               azureSubscription: $(azureSubscription)
-              scriptType: bash
-              scriptLocation: inlineScript
-              inlineScript: |
-                az extension add --name containerapp --upgrade
-                az containerapp update \
-                  --name "$(containerAppName)" \
-                  --resource-group "$(resourceGroupName)" \
-                  --image "$(acrLoginServer)/$(imageRepository):$(Build.BuildId)"
+              appName: $(appServiceName)
+              package: $(Pipeline.Workspace)/drop/$(packageName)
