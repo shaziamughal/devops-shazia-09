@@ -4,7 +4,8 @@ trigger:
       - main
 
 variables:
-  azureSubscription: Subscription 1
+  # Must match the Azure DevOps service connection name exactly.
+  azureServiceConnectionName: Azure-DevOps-Connection
   appServiceName: ShaziaWebApp
   packageName: site.zip
 
@@ -45,6 +46,6 @@ stages:
           - task: AzureWebApp@1
             displayName: Deploy to App Service
             inputs:
-              azureSubscription: $(azureSubscription)
+              azureSubscription: $(azureServiceConnectionName)
               appName: $(appServiceName)
               package: $(Pipeline.Workspace)/drop/$(packageName)
