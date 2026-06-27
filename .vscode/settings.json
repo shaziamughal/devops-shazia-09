@@ -1,0 +1,4 @@
+{
+    "appService.defaultWebAppToDeploy": "/subscriptions/3d8e897e-5bca-470a-b1d2-86fff8989726/resourceGroups/CCP-Resource/providers/Microsoft.Web/sites/ShaziaPortfolio",
+    "appService.deploySubpath": "."
+}
